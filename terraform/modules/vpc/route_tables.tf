@@ -1,0 +1,24 @@
+# Public Route Tables - One per Environment
+resource "aws_route_table" "public" {
+  for_each = var.environment_subnets
+
+  vpc_id = aws_vpc.this.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.this.id
+  }
+
+  tags = {
+    Name        = "${each.key}-public-rt"
+    Environment = each.key
+  }
+}
+
+# Associate Public Subnets
+resource "aws_route_table_association" "public" {
+  for_each = aws_subnet.public
+
+  subnet_id      = each.value.id
+  route_table_id = aws_route_table.public[each.key].id
+}
