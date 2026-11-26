@@ -11,6 +11,9 @@ pipeline {
     environment {
         AWS_REGION = 'ap-south-1'
         ECR_REPOSITORY = 'myapp-dev'
+        ECS_CLUSTER = 'myapp-dev'
+        ECS_SERVICE = 'myapp-dev-service'
+        TASK_FAMILY = 'myapp-dev'
     }
 
     stages {
@@ -120,13 +123,69 @@ pipeline {
         }
     }
 
+    stage('Register ECS Task Definition') {
+    steps {
+        script {
+            env.TASK_DEF_ARN = sh(
+                script: '''
+                    aws ecs describe-task-definition \
+                      --task-definition "$TASK_FAMILY" \
+                      --region "$AWS_REGION" \
+                      --query taskDefinition > task-def.json
+
+                    jq --arg image "$IMAGE_URI:$BUILD_NUMBER" '
+                      del(
+                        .taskDefinitionArn,
+                        .revision,
+                        .status,
+                        .requiresAttributes,
+                        .compatibilities,
+                        .registeredAt,
+                        .registeredBy,
+                        .deregisteredAt
+                      )
+                      | .containerDefinitions[0].image = $image
+                    ' task-def.json > new-task-def.json
+
+                    aws ecs register-task-definition \
+                      --cli-input-json file://new-task-def.json \
+                      --region "$AWS_REGION" \
+                      --query 'taskDefinition.taskDefinitionArn' \
+                      --output text
+                ''',
+                returnStdout: true
+            ).trim()
+
+            echo "Registered Task Definition: ${env.TASK_DEF_ARN}"
+        }
+    }
+}
+
+stage('Deploy to ECS') {
+    steps {
+        sh '''
+            aws ecs update-service \
+              --cluster "$ECS_CLUSTER" \
+              --service "$ECS_SERVICE" \
+              --task-definition "$TASK_DEF_ARN" \
+              --desired-count 1 \
+              --region "$AWS_REGION"
+
+            aws ecs wait services-stable \
+              --cluster "$ECS_CLUSTER" \
+              --services "$ECS_SERVICE" \
+              --region "$AWS_REGION"
+        '''
+    }
+}
+
     post {
         success {
-            echo 'CI Pipeline completed successfully!'
+            echo 'CICD Pipeline completed successfully!'
         }
 
         failure {
-            echo 'CI Pipeline failed. Please check the stage logs.'
+            echo 'CICD Pipeline failed. Please check the stage logs.'
         }
     }
 }

@@ -16,10 +16,12 @@ variable "availability_zones" {
 }
 
 variable "environment_subnets" {
-  description = "Subnet CIDRs for each environment"
+  description = "Subnet CIDRs for each environment across two AZs"
 
   type = map(object({
-    public  = string
-    private = string
+    public    = string
+    private   = string
+    public_2  = string
+    private_2 = string
   }))
 }

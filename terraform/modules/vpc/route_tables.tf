@@ -22,3 +22,28 @@ resource "aws_route_table_association" "public" {
   subnet_id      = each.value.id
   route_table_id = aws_route_table.public[each.key].id
 }
+
+# Second AZ Public Route Tables
+resource "aws_route_table" "public_2" {
+  for_each = var.environment_subnets
+
+  vpc_id = aws_vpc.this.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.this.id
+  }
+
+  tags = {
+    Name        = "${each.key}-public-rt-2"
+    Environment = each.key
+  }
+}
+
+# Associate Second AZ Public Subnets
+resource "aws_route_table_association" "public_2" {
+  for_each = aws_subnet.public_2
+
+  subnet_id      = each.value.id
+  route_table_id = aws_route_table.public_2[each.key].id
+}

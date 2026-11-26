@@ -23,3 +23,19 @@ output "private_subnet_ids" {
     env => subnet.id
   }
 }
+
+output "public_subnet_2_ids" {
+  description = "Public subnet IDs in second AZ"
+  value = {
+    for env, subnet in aws_subnet.public_2 :
+    env => subnet.id
+  }
+}
+
+output "private_subnet_2_ids" {
+  description = "Private subnet IDs in second AZ"
+  value = {
+    for env, subnet in aws_subnet.private_2 :
+    env => subnet.id
+  }
+}
