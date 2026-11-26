@@ -119,7 +119,7 @@ pipeline {
                     docker push "$IMAGE_URI:$BUILD_NUMBER"
                     docker push "$IMAGE_URI:latest"
                 '''
-            }
+            
         }
     }
 
@@ -177,6 +177,7 @@ stage('Deploy to ECS') {
               --region "$AWS_REGION"
         '''
     }
+ }
 }
 
     post {
